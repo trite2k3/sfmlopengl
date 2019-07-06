@@ -103,8 +103,6 @@ int main()
     char buffer[512];
     glGetShaderInfoLog(vertexShader, 512, NULL, buffer);
     
-    cout << buffer;
-    
     // compile fragment shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
