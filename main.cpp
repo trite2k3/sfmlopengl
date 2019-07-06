@@ -94,8 +94,6 @@ int main()
     GLint status;
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &status);
     
-    cout << status;
-    
     //
     // if status = GL_TRUE, compilation successfull
     //
