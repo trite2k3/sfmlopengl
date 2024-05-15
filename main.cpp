@@ -45,7 +45,10 @@ int main()
     
     // create the window
     sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test");
-    window.setVerticalSyncEnabled(true);
+    window.setVerticalSyncEnabled(false);
+
+    // limit framerate
+    window.setFramerateLimit(60);
     
     // GLEW will pull data on what your GPU is capable of
     // set it to experimental to avoid problems when using glew in a core context
@@ -66,7 +69,10 @@ int main()
     GLuint vertexBuffer;
     glGenBuffers(1, &vertexBuffer);
     
-    //Triangle
+    // Triangle array (data for buffer)
+    // we dont specify amount of positions because screw that :D
+    // each line is a vertex, a vertex is a point that is on your geometry (has nothing to do with a position)
+    // a vertex can be much more than just a position (texture coords, colors, normals, binormals, tangets etc.)
     float vertices[] = {
         0.0f, 0.5f, // Vertex 1 (X, Y)
         0.5f, -0.5f, // Vertex 2 (X, Y)
@@ -74,15 +80,23 @@ int main()
     };
     
     // Upload vertices data into GPU for processing by the shaders n' stuff
+    // this is the vertex buffer (an array of bytes in memory in the gpu [vram])
     GLuint vbo;
-    glGenBuffers(1, &vbo); //Generate 1 buffer
+    glGenBuffers(1, &vbo); //Generate 1 buffer, 1 is the ID
     
     // upload data through GLuint vbo and call glBindBuffer to
     // create active array buffer and put vertices data into it
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    // create a definition of how large this buffer is
+    // giving data to this buffer before or after declaration is optional
+    // we dont specify size of our array, just use sizeof()
+    // the static draw will probably be changed later on, but for this example lets use static
+    // the "use" of this refers to how many times it will be drawn
+    // docs.gl is a good website to check manpages for glBufferData
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
-    // compile shaders
+    // compile shaders (a program that runs on the gpu using the vertex array buffers to draw it on screen)
+    // the shader needs to know the layout of the buffer or what it contains, position of vertices, textures etc.
     // create shader object and load data
     // compile vertices
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -134,8 +148,28 @@ int main()
     glBindVertexArray(vao);
     
     // put position data in the vertex shader
+    // need to tell openGL what is in memory and how to handle it
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    // index (what number in the array states the attribute of the defined type) ... ->
+    // of which attribute we are refering to (an attribute is a position or color or texture etc.)
+    // in this case its a position with 2 floats as values for the position (2 component vector)
+    // if we had 3d (vec3) we would be setting this value to 3 and have 3 floats in the buffer
+    // GL_FALSE is normalised since we are lazy and let openGL set our color values and ... ->
+    // we dont want to do it manually in our cpu
+    // the first 0 is "stride" which is an offset of bytes between each vertex in the vertex buffer
+    // the stride depends on how many bytes your vertex is, aka the size of each vertex
+    // the second 0 is the "pointer", a pointer into the actual attribute
+    // the pointer refers to how many bytes in each attribute in the vertex is (aka where each value in the ... ->
+    // vertex starts) so openGL can start reading from the buffer where the wanted value is
+    // basically its a simplified version of where to start to read in the memory instead of manually writing ... ->
+    // what byte to start to read at in the memory
+    // glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    // lets try to make this stride a bit more flexible
+    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
+    // if we had vec3 the pointer would be 8 bytes, but we cant just pass 8, it needs to be a const void pointer
+    // if we were real programmers we would have a struct to define our vertex and we could use offset of macro ... ->
+    // to figure out what this value should be. we are not though so screw it lol :D
+    // glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, (const void*)8);
     
     // enable vertex attribute array
     glEnableVertexAttribArray(posAttrib);
@@ -165,12 +199,15 @@ int main()
 
     // Load a music to play
     sf::Music music;
-    if (!music.openFromFile("Retribution.ogg"))
+    if (!music.openFromFile("sample.ogg"))
         return EXIT_FAILURE;
     
     // Play the music
     music.play();
-    
+
+    // Loop it
+    music.setLoop(true);
+
     // run the main loop
     bool running = true;
     while (running)
@@ -195,11 +232,22 @@ int main()
                 running = false;
         }
 
+
         // clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // OpenGL drawing
+        // this is used when you do not have an index buffer
+        // the primitive we are trying to draw is a triangle
+        // draw index is 0
+        // and count is 3 (number of indices/vertices to be rendered)
+        // note that this will draw the latest selected/binded/bound buffer
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        // if and index buffer is present we would use
+        // count is 3
+        // type of index data (unsigned int/short)
+        // pointer to the indices, almost never used and prob null
+        // glDrawElements(GL_TRIANGELS, 3, $index, $indicepointer)
 
         // end the current frame (internally swaps the front and back buffers)
         window.display();
