@@ -6,6 +6,8 @@
 
 Requires: SFML, GLM
 
+you also need to probide any .ogg soundfile for the music playback or just comment it out
+
 
 
 
