@@ -8,6 +8,19 @@ using namespace std;
 #include <GL/glew.h>
 #include <GL/gl.h>
 
+// time to define a rendering pipeline
+// when we issue a draw call
+// the vertex shader will be called (for each vertex that is rendered)
+// the vertex shader will forward all the attributes (like position and everything else) to the fragment shader
+// the vertex shader is primarily responsible for vertices position
+// then the fragment shader will be called
+// the fragment shader will fill in the pixels between the vertices
+// it will process each pixel between the vertices and decide what color each pixel will be shaded in
+// the fragment shader will be called each time per vertex times the area (the amount of pixels)
+// doing computations and passing data from the vertex shader to the fragment shader should be prioritized due to performance
+// the primary function of the fragment shader is to decide what color a pixel should be
+// then the result will be drawn on the screen (a lot of other things may happen in between, this is a simplified version)
+
 // Vertex shader, bare bones no color.
 const GLchar* vertexSource = R"glsl(
     #version 150 core
@@ -19,8 +32,8 @@ const GLchar* vertexSource = R"glsl(
         gl_Position = vec4(position, 0.0, 1.0);
     }
 )glsl";
-    
-// Fragment shader
+
+// Fragment/pixel shader
 const GLchar* fragmentSource = R"glsl(
     #version 150 core
     
@@ -31,6 +44,8 @@ const GLchar* fragmentSource = R"glsl(
         outColor = vec4(1.0, 1.0, 1.0, 1.0);
     }
 )glsl";
+
+// placeholder for tesselation/geometry/compute shaders?
 
 int main()
 {
