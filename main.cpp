@@ -11,6 +11,48 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <fstream>
+#include <string>
+#include <sstream>
+
+struct ShaderProgramSource
+{
+    std::string VertexSource;
+    std::string FragmentSource;
+};
+
+static ShaderProgramSource ParseShader(const std::string& filepath)
+{
+    std::ifstream stream(filepath);
+
+    enum class ShaderType
+    {
+        NONE = -1, VERTEX = 0, FRAGMENT = 1
+    };
+
+    std::string line;
+    std::stringstream ss[2];
+
+    ShaderType type = ShaderType::NONE;
+
+    while (getline(stream, line))
+    {
+        if (line.find("#shader") != std::string::npos)
+        {
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+        }
+        else
+        {
+            ss[(int)type] << line << '\n';
+        }
+    }
+
+    return { ss[0].str(), ss[1].str() };
+}
+
 static GLuint CompileShader(GLuint type, const std::string& source)
 {
     // create shader object and load data
@@ -103,7 +145,10 @@ int main()
     float vertices[] = {
         0.0f, 0.5f, // Vertex 1 (X, Y)
         0.5f, -0.5f, // Vertex 2 (X, Y)
-        -0.5f, -0.5f // Vertex 3 (X, Y)
+        -0.5f, -0.5f, // Vertex 3 (X, Y)
+        0.5f, 0.0f,
+        0.8f, 0.2f, // the lulz is real?
+        0.0f, 0.7f
     };
     
     // Upload vertices data into GPU
@@ -118,27 +163,11 @@ int main()
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
 
-    // Vertex shader, bare bones no color.
-    const std::string vertexSource = R"glsl(
-        #version 330 core
-        layout(location = 0) in vec2 position;
-        void main()
-        {
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-    )glsl";
-
-    const std::string fragmentSource = R"glsl(
-        #version 330 core
-        out vec4 outColor;
-        void main()
-        {
-            outColor = vec4(1.0, 1.0, 1.0, 1.0);
-        }
-    )glsl";
+    // parse shader.glsl
+    ShaderProgramSource source = ParseShader("shader.glsl");
 
     // pass source and create + compile, then use that program
-    GLuint shader = CreateShader(vertexSource, fragmentSource);
+    GLuint shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
 
     // activate the window
@@ -196,7 +225,8 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         // OpenGL drawing
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        // was 3 but now 6 because of lulz
+        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // end the current frame (internally swaps the front and back buffers)
         window.display();
