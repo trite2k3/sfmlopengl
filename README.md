@@ -4,7 +4,7 @@
 ![screenshot](screen.png?raw=trie "screen")
 
 
-Requires: SFML
+Requires: SFML, GLM
 
 
 
