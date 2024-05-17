@@ -5,7 +5,7 @@
 
 Requires: SFML, GLM
 
-you also need to provide any .ogg soundfile for the music playback or just comment it out
+you also need to provide any .ogg soundfile for the music playback
 
 
 
