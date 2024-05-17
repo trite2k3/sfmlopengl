@@ -312,7 +312,7 @@ int main()
 
         // Calculate and display the amplitude of the current sample
         float amplitude = analyzer.getAmplitude();
-        std::cout << "Amplitude: " << amplitude << std::endl;
+        //std::cout << "Amplitude: " << amplitude << std::endl;
 
         // Calculate scale based on amplitude and apply to the model matrix
         float scale = 1.0f + amplitude; // Adjust this scale factor as needed
