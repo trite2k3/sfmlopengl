@@ -14,14 +14,14 @@
 #include <sstream>
 #include <cmath>
 
-// Structure to hold shader source code
+// Struct to hold the source code for vertex and fragment shaders
 struct ShaderProgramSource
 {
-    std::string VertexSource; // Vertex shader source code
-    std::string FragmentSource; // Fragment shader source code
+    std::string VertexSource;
+    std::string FragmentSource;
 };
 
-// Function to parse the shader file and separate vertex and fragment shaders
+// Function to parse shader files and separate vertex and fragment shader code
 static ShaderProgramSource ParseShader(const std::string& filepath)
 {
     std::ifstream stream(filepath);
@@ -30,7 +30,6 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
     enum class ShaderType { NONE = -1, VERTEX = 0, FRAGMENT = 1 };
     ShaderType type = ShaderType::NONE;
 
-    // Read the shader file line by line
     while (getline(stream, line))
     {
         if (line.find("#shader") != std::string::npos)
@@ -42,14 +41,14 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
         }
         else
         {
-            ss[(int)type] << line << '\n'; // Append line to the appropriate shader source
+            ss[(int)type] << line << '\n';
         }
     }
 
-    return { ss[0].str(), ss[1].str() }; // Return the parsed shader sources
+    return { ss[0].str(), ss[1].str() };
 }
 
-// Function to compile a shader from source code
+// Function to compile individual shaders (vertex or fragment)
 static GLuint CompileShader(GLuint type, const std::string& source)
 {
     GLuint id = glCreateShader(type);
@@ -57,6 +56,7 @@ static GLuint CompileShader(GLuint type, const std::string& source)
     glShaderSource(id, 1, &src, nullptr);
     glCompileShader(id);
 
+    // Error handling for shader compilation
     int result;
     glGetShaderiv(id, GL_COMPILE_STATUS, &result);
     if (result == GL_FALSE)
@@ -71,7 +71,7 @@ static GLuint CompileShader(GLuint type, const std::string& source)
         return 0;
     }
 
-    return id; // Return the shader ID if compilation is successful
+    return id;
 }
 
 // Function to create a shader program by linking vertex and fragment shaders
@@ -86,20 +86,20 @@ static GLuint CreateShader(const std::string& vertexShader, const std::string& f
     glLinkProgram(program);
     glValidateProgram(program);
 
+    // Clean up shaders as they are no longer needed after linking
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    return program; // Return the created shader program ID
+    return program;
 }
 
-// Function to generate a sphere's vertices and indices
+// Function to generate vertices and indices for a sphere
 void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& indices, float radius, unsigned int rings, unsigned int sectors)
 {
     const float PI = 3.14159265359f;
     const float R = 1.0f / (float)(rings - 1);
     const float S = 1.0f / (float)(sectors - 1);
 
-    // Generate sphere vertices
     for (unsigned int r = 0; r < rings; ++r)
     {
         for (unsigned int s = 0; s < sectors; ++s)
@@ -117,7 +117,6 @@ void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& ind
         }
     }
 
-    // Generate sphere indices
     for (unsigned int r = 0; r < rings - 1; ++r)
     {
         for (unsigned int s = 0; s < sectors - 1; ++s)
@@ -132,7 +131,7 @@ void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& ind
     }
 }
 
-// Class to analyze the amplitude of audio samples
+// Class for analyzing amplitude from an SFML sound buffer
 class AmplitudeAnalyzer : public sf::SoundStream {
 public:
     AmplitudeAnalyzer() {}
@@ -146,7 +145,7 @@ public:
         m_currentSampleIndex = 0; // Reset current sample index
     }
 
-    // Override the onGetData function to fetch audio samples
+    // Provide audio data to the stream
     bool onGetData(sf::SoundStream::Chunk& data) override {
         const std::size_t sampleCount = 3072; // Adjust the buffer size as needed
         data.sampleCount = sampleCount;
@@ -197,8 +196,9 @@ int main()
     settings.minorVersion = 6;
     settings.attributeFlags = sf::ContextSettings::Core;
 
-    // Create a window with OpenGL context
-    sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test", sf::Style::Default, settings);
+    // Create the SFML window with fullscreen style
+    sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
+    sf::RenderWindow window(desktopMode, "OpenGL + SFML Test", sf::Style::Fullscreen, settings);
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(144);
 
@@ -210,24 +210,24 @@ int main()
         return -1;
     }
 
+    // Check for OpenGL errors
     if (glGetError() != GL_NO_ERROR)
     {
         std::cerr << "OpenGL error occurred" << std::endl;
         return -1;
     }
 
-    // Parse the shader file
+    // Parse and compile shaders
     ShaderProgramSource source = ParseShader("shader.glsl");
-    // Create and use the shader program
     GLuint shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
 
-    // Generate sphere vertices and indices
+    // Generate sphere data
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     generateSphere(vertices, indices, 1.0f, 32, 32);
 
-    // Create and bind VAO, VBO, and EBO
+    // Setup vertex array object (VAO), vertex buffer object (VBO), and element buffer object (EBO)
     GLuint vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -241,52 +241,45 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
-    // Specify vertex attribute pointers
+    // Specify vertex attribute layout
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    // Set up projection, view, and model matrices
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
-    GLuint projLoc = glGetUniformLocation(shader, "projection");
-    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    // Set up projection matrix
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(desktopMode.width) / desktopMode.height, 0.1f, 100.0f);
+    glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 2.0f);
+    glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
-    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    GLuint viewLoc = glGetUniformLocation(shader, "view");
-    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-    glm::mat4 model = glm::mat4(1.0f);
+    // Get uniform locations
     GLuint modelLoc = glGetUniformLocation(shader, "model");
-    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
+    GLuint viewLoc = glGetUniformLocation(shader, "view");
+    GLuint projLoc = glGetUniformLocation(shader, "projection");
     GLuint lightPosLoc = glGetUniformLocation(shader, "lightPos");
     GLuint viewPosLoc = glGetUniformLocation(shader, "viewPos");
 
-    window.setActive(true);
-    sf::Clock clock;
+    glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    glClearDepth(1.f);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.f);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-
-    // Create an instance of the amplitude analyzer
-    AmplitudeAnalyzer analyzer;
-
-    // Load the OGG sound file into the sound buffer
+    // Set up SFML audio
     sf::SoundBuffer buffer;
-    if (!buffer.loadFromFile("sample.ogg")) {
-        std::cerr << "Failed to load sound file." << std::endl;
-        return EXIT_FAILURE;
+    if (!buffer.loadFromFile("sample.ogg"))
+    {
+        std::cerr << "Failed to load sound file" << std::endl;
+        return -1;
     }
 
-    // Set the sound buffer for the analyzer
+    // Initialize and play audio analyzer
+    AmplitudeAnalyzer analyzer;
     analyzer.setSoundBuffer(buffer);
-    analyzer.setLoop(true); // Set the sound to loop
-
-    // Start playing the audio
     analyzer.play();
+
+    // Enable depth test
+    glEnable(GL_DEPTH_TEST);
+
+    // Set up view matrix
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
     bool running = true;
     while (running)
@@ -310,30 +303,28 @@ int main()
             }
         }
 
-        // Calculate and display the amplitude of the current sample
+        // Get the current amplitude and scale the model matrix accordingly
         float amplitude = analyzer.getAmplitude();
-        //std::cout << "Amplitude: " << amplitude << std::endl;
-
-        // Calculate scale based on amplitude and apply to the model matrix
-        float scale = 1.0f + amplitude; // Adjust this scale factor as needed
+        float scale = 1.0f + amplitude;
         glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
+        // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 2.0f);
-        glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
-
+        // Set uniform variables for light and view positions
         glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
         glUniform3fv(viewPosLoc, 1, glm::value_ptr(viewPos));
 
+        // Draw the sphere
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 
+        // Display the rendered frame
         window.display();
     }
 
-    // Clean up resources
+    // Clean up OpenGL resources
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);

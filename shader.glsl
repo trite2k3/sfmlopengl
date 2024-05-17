@@ -1,8 +1,8 @@
 #shader vertex
 #version 460 core
 
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec3 aNormal;
 
 out vec3 FragPos;
 out vec3 Normal;
@@ -49,6 +49,6 @@ void main()
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
     vec3 specular = specularStrength * spec * vec3(1.0, 1.0, 1.0);
 
-    vec3 result = (ambient + diffuse + specular) * vec3(1.0, 0.5, 0.31);
+    vec3 result = (ambient + diffuse + specular) * vec3(1.0, 0.5, 0.31); // Change color here
     FragColor = vec4(result, 1.0);
 }
