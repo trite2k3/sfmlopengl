@@ -1,16 +1,14 @@
 #include <iostream>
-
+#include <vector>
 #include <SFML/Audio.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
-
 #include <GL/glew.h>
 #include <GL/gl.h>
-
+#include <GL/glu.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -24,15 +22,9 @@ struct ShaderProgramSource
 static ShaderProgramSource ParseShader(const std::string& filepath)
 {
     std::ifstream stream(filepath);
-
-    enum class ShaderType
-    {
-        NONE = -1, VERTEX = 0, FRAGMENT = 1
-    };
-
     std::string line;
     std::stringstream ss[2];
-
+    enum class ShaderType { NONE = -1, VERTEX = 0, FRAGMENT = 1 };
     ShaderType type = ShaderType::NONE;
 
     while (getline(stream, line))
@@ -55,78 +47,96 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
 
 static GLuint CompileShader(GLuint type, const std::string& source)
 {
-    // create shader object and load data
     GLuint id = glCreateShader(type);
-
-    // load source and compile
     const char* src = source.c_str();
     glShaderSource(id, 1, &src, nullptr);
     glCompileShader(id);
 
-    // Check shader compilation debug output
     int result;
     glGetShaderiv(id, GL_COMPILE_STATUS, &result);
-
-    // if result = GL_TRUE, compilation successfull
     if (result == GL_FALSE)
     {
         int length;
         glGetShaderiv(id, GL_INFO_LOG_LENGTH, &length);
         char* message = (char*)alloca(length * sizeof(char));
-
-        // get compile log
         glGetShaderInfoLog(id, length, &length, message);
-
-        // print
-        std::cout << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment")  << " shader!" << std::endl;
-        std::cout << message << std::endl;
-
-        // delete shader since it didnt work out
+        std::cerr << "Failed to compile " << (type == GL_VERTEX_SHADER ? "vertex" : "fragment") << " shader!" << std::endl;
+        std::cerr << message << std::endl;
         glDeleteShader(id);
         return 0;
     }
+
     return id;
 }
 
 static GLuint CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
 {
-    // make the program and compile
     GLuint program = glCreateProgram();
     GLuint vs = CompileShader(GL_VERTEX_SHADER, vertexShader);
     GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fragmentShader);
 
-    // attach vertex and fragment to shader program
     glAttachShader(program, vs);
     glAttachShader(program, fs);
-
-    // update shader program by linking it and do validation
     glLinkProgram(program);
     glValidateProgram(program);
 
-    // cleanup (not needed anymore it has been linked to shader program)
     glDeleteShader(vs);
     glDeleteShader(fs);
 
     return program;
 }
 
+void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& indices, float radius, unsigned int rings, unsigned int sectors)
+{
+    const float PI = 3.14159265359f;
+    const float R = 1.0f / (float)(rings - 1);
+    const float S = 1.0f / (float)(sectors - 1);
+
+    for (unsigned int r = 0; r < rings; ++r)
+    {
+        for (unsigned int s = 0; s < sectors; ++s)
+        {
+            float y = sin(-PI / 2.0f + PI * r * R);
+            float x = cos(2.0f * PI * s * S) * sin(PI * r * R);
+            float z = sin(2.0f * PI * s * S) * sin(PI * r * R);
+
+            vertices.push_back(x * radius);
+            vertices.push_back(y * radius);
+            vertices.push_back(z * radius);
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+        }
+    }
+
+    for (unsigned int r = 0; r < rings - 1; ++r)
+    {
+        for (unsigned int s = 0; s < sectors - 1; ++s)
+        {
+            indices.push_back(r * sectors + s);
+            indices.push_back(r * sectors + (s + 1));
+            indices.push_back((r + 1) * sectors + (s + 1));
+            indices.push_back(r * sectors + s);
+            indices.push_back((r + 1) * sectors + (s + 1));
+            indices.push_back((r + 1) * sectors + s);
+        }
+    }
+}
+
 int main()
 {
-    // Declare some variables for settings and then call for a window
     sf::ContextSettings settings;
     settings.depthBits = 24;
     settings.stencilBits = 8;
-    settings.antialiasingLevel = 2; // Optional
-    settings.majorVersion = 4; //Request OpenGL version 3.2, nope 4.6
+    settings.antialiasingLevel = 2;
+    settings.majorVersion = 4;
     settings.minorVersion = 6;
     settings.attributeFlags = sf::ContextSettings::Core;
-    
-    // create the window and set limit framerate
-    sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test");
+
+    sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test", sf::Style::Default, settings);
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(60);
-    
-    // set GLEW to experimental to avoid problems when using glew in a core context, then initialize GLEW
+
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
     {
@@ -134,85 +144,81 @@ int main()
         return -1;
     }
 
-    // Troubleshooting
     if (glGetError() != GL_NO_ERROR)
     {
         std::cerr << "OpenGL error occurred" << std::endl;
         return -1;
     }
-    
-    // Triangle array (data for buffer)
-    float vertices[] = {
-        0.0f, 0.5f, // Vertex 1 (X, Y)
-        0.5f, -0.5f, // Vertex 2 (X, Y)
-        -0.5f, -0.5f, // Vertex 3 (X, Y)
-        0.5f, 0.0f,
-        0.8f, 0.2f, // the lulz is real?
-        0.0f, 0.7f
-    };
-    
-    // Upload vertices data into GPU
-    GLuint buffer;
-    glGenBuffers(1, &buffer); //Generate 1 buffer, 1 is the ID
-    
-    // create active array buffer and put vertices data into it
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    // put position data in the shader and enable vertex attribute array
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);
-
-    // parse shader.glsl
     ShaderProgramSource source = ParseShader("shader.glsl");
-
-    // pass source and create + compile, then use that program
     GLuint shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
 
-    // activate the window
-    window.setActive(true);
-    
-    // Create a clock for measuring time elapsed
-    sf::Clock clock;
-    
-    // prepare OpenGL surface for HSR
-    glClearDepth(1.f);
-    glClearColor(0.3f, 0.3f, 0.3f, 0.f);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
-    
-    // modern opengl glm perspective and camera
-    glm::mat4 projection = glm::perspective(glm::radians(90.0f), 4.0f / 3.0f, 1.0f, 300.0f);
+    std::vector<float> vertices;
+    std::vector<unsigned int> indices;
+    generateSphere(vertices, indices, 1.0f, 32, 32);
+
+    GLuint vao, vbo, ebo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glGenBuffers(1, &ebo);
+
+    glBindVertexArray(vao);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
     GLuint projLoc = glGetUniformLocation(shader, "projection");
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-    // load a music to play and loop
+    glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    GLuint viewLoc = glGetUniformLocation(shader, "view");
+    glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+
+    glm::mat4 model = glm::mat4(1.0f);
+    GLuint modelLoc = glGetUniformLocation(shader, "model");
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
+    GLuint lightPosLoc = glGetUniformLocation(shader, "lightPos");
+    GLuint viewPosLoc = glGetUniformLocation(shader, "viewPos");
+
+    window.setActive(true);
+    sf::Clock clock;
+
+    glClearDepth(1.f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+
     sf::Music music;
     if (!music.openFromFile("sample.ogg"))
         return EXIT_FAILURE;
     music.play();
     music.setLoop(true);
 
-    //
-    // main loop
-    //
     bool running = true;
     while (running)
     {
-        // handle events
         sf::Event event;
         while (window.pollEvent(event))
         {
             if (event.type == sf::Event::Closed)
             {
-                // end the program
                 running = false;
             }
             else if (event.type == sf::Event::Resized)
             {
                 glViewport(0, 0, event.size.width, event.size.height);
-                projection = glm::perspective(glm::radians(90.0f), static_cast<float>(event.size.width) / event.size.height, 1.0f, 300.0f);
+                projection = glm::perspective(glm::radians(45.0f), static_cast<float>(event.size.width) / event.size.height, 0.1f, 100.0f);
                 glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
             }
             else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))
@@ -221,20 +227,24 @@ int main()
             }
         }
 
-        // clear the buffers
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        // OpenGL drawing
-        // was 3 but now 6 because of lulz
-        glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        // end the current frame (internally swaps the front and back buffers)
+        glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 2.0f);
+        glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
+
+        glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightPos));
+        glUniform3fv(viewPosLoc, 1, glm::value_ptr(viewPos));
+
+        glBindVertexArray(vao);
+        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
         window.display();
     }
 
-    // release resources...
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteBuffers(1, &ebo);
     glDeleteProgram(shader);
-    glDeleteBuffers(1, &buffer);
 
     return 0;
 }
