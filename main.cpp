@@ -14,12 +14,14 @@
 #include <sstream>
 #include <cmath>
 
+// Structure to hold shader source code
 struct ShaderProgramSource
 {
-    std::string VertexSource;
-    std::string FragmentSource;
+    std::string VertexSource; // Vertex shader source code
+    std::string FragmentSource; // Fragment shader source code
 };
 
+// Function to parse the shader file and separate vertex and fragment shaders
 static ShaderProgramSource ParseShader(const std::string& filepath)
 {
     std::ifstream stream(filepath);
@@ -28,6 +30,7 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
     enum class ShaderType { NONE = -1, VERTEX = 0, FRAGMENT = 1 };
     ShaderType type = ShaderType::NONE;
 
+    // Read the shader file line by line
     while (getline(stream, line))
     {
         if (line.find("#shader") != std::string::npos)
@@ -39,13 +42,14 @@ static ShaderProgramSource ParseShader(const std::string& filepath)
         }
         else
         {
-            ss[(int)type] << line << '\n';
+            ss[(int)type] << line << '\n'; // Append line to the appropriate shader source
         }
     }
 
-    return { ss[0].str(), ss[1].str() };
+    return { ss[0].str(), ss[1].str() }; // Return the parsed shader sources
 }
 
+// Function to compile a shader from source code
 static GLuint CompileShader(GLuint type, const std::string& source)
 {
     GLuint id = glCreateShader(type);
@@ -67,9 +71,10 @@ static GLuint CompileShader(GLuint type, const std::string& source)
         return 0;
     }
 
-    return id;
+    return id; // Return the shader ID if compilation is successful
 }
 
+// Function to create a shader program by linking vertex and fragment shaders
 static GLuint CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
 {
     GLuint program = glCreateProgram();
@@ -84,15 +89,17 @@ static GLuint CreateShader(const std::string& vertexShader, const std::string& f
     glDeleteShader(vs);
     glDeleteShader(fs);
 
-    return program;
+    return program; // Return the created shader program ID
 }
 
+// Function to generate a sphere's vertices and indices
 void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& indices, float radius, unsigned int rings, unsigned int sectors)
 {
     const float PI = 3.14159265359f;
     const float R = 1.0f / (float)(rings - 1);
     const float S = 1.0f / (float)(sectors - 1);
 
+    // Generate sphere vertices
     for (unsigned int r = 0; r < rings; ++r)
     {
         for (unsigned int s = 0; s < sectors; ++s)
@@ -110,6 +117,7 @@ void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& ind
         }
     }
 
+    // Generate sphere indices
     for (unsigned int r = 0; r < rings - 1; ++r)
     {
         for (unsigned int s = 0; s < sectors - 1; ++s)
@@ -124,6 +132,7 @@ void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& ind
     }
 }
 
+// Class to analyze the amplitude of audio samples
 class AmplitudeAnalyzer : public sf::SoundStream {
 public:
     AmplitudeAnalyzer() {}
@@ -137,6 +146,7 @@ public:
         m_currentSampleIndex = 0; // Reset current sample index
     }
 
+    // Override the onGetData function to fetch audio samples
     bool onGetData(sf::SoundStream::Chunk& data) override {
         const std::size_t sampleCount = 3072; // Adjust the buffer size as needed
         data.sampleCount = sampleCount;
@@ -187,10 +197,12 @@ int main()
     settings.minorVersion = 6;
     settings.attributeFlags = sf::ContextSettings::Core;
 
+    // Create a window with OpenGL context
     sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test", sf::Style::Default, settings);
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(144);
 
+    // Initialize GLEW
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
     {
@@ -204,14 +216,18 @@ int main()
         return -1;
     }
 
+    // Parse the shader file
     ShaderProgramSource source = ParseShader("shader.glsl");
+    // Create and use the shader program
     GLuint shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
 
+    // Generate sphere vertices and indices
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
     generateSphere(vertices, indices, 1.0f, 32, 32);
 
+    // Create and bind VAO, VBO, and EBO
     GLuint vao, vbo, ebo;
     glGenVertexArrays(1, &vao);
     glGenBuffers(1, &vbo);
@@ -225,11 +241,13 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), indices.data(), GL_STATIC_DRAW);
 
+    // Specify vertex attribute pointers
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // Set up projection, view, and model matrices
     glm::mat4 projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
     GLuint projLoc = glGetUniformLocation(shader, "projection");
     glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
@@ -315,6 +333,7 @@ int main()
         window.display();
     }
 
+    // Clean up resources
     glDeleteVertexArrays(1, &vao);
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
