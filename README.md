@@ -7,9 +7,9 @@ Requires: SFML, GLM
 
 you also need to provide any .ogg soundfile for the music playback
 
+change window.setFramerateLimit(144); to whatever hz your monitor is (or limit for your hardware)
 
-
-
+vsync is disabled.
 
 build with:
 
