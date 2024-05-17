@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <cmath>
 
 struct ShaderProgramSource
 {
@@ -123,6 +124,59 @@ void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& ind
     }
 }
 
+class AmplitudeAnalyzer : public sf::SoundStream {
+public:
+    AmplitudeAnalyzer() {}
+
+    // Set the sound buffer to be analyzed
+    void setSoundBuffer(const sf::SoundBuffer& buffer) {
+        m_buffer = buffer;
+        m_sampleRate = buffer.getSampleRate();
+        m_channelCount = buffer.getChannelCount();
+        initialize(m_channelCount, m_sampleRate); // Reinitialize with the correct sample rate and channels
+        m_currentSampleIndex = 0; // Reset current sample index
+    }
+
+    bool onGetData(sf::SoundStream::Chunk& data) override {
+        const std::size_t sampleCount = 3072; // Adjust the buffer size as needed
+        data.sampleCount = sampleCount;
+        data.samples = new sf::Int16[sampleCount];
+
+        // Read audio samples from the sound buffer
+        if (m_currentSampleIndex < m_buffer.getSampleCount()) {
+            const sf::Int16* bufferSamples = m_buffer.getSamples();
+            std::size_t samplesToCopy = std::min(sampleCount, static_cast<std::size_t>(m_buffer.getSampleCount() - m_currentSampleIndex));
+            std::memcpy(const_cast<sf::Int16*>(data.samples), &bufferSamples[m_currentSampleIndex], samplesToCopy * sizeof(sf::Int16));
+
+            m_currentSampleIndex += samplesToCopy;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // Override the onSeek function to reset the current sample index
+    void onSeek(sf::Time timeOffset) override {
+        m_currentSampleIndex = static_cast<std::size_t>(timeOffset.asSeconds() * m_sampleRate * m_channelCount); // Convert seconds to sample index
+    }
+
+    // Calculate the amplitude of the current sample
+    float getAmplitude() const {
+        if (m_currentSampleIndex < m_buffer.getSampleCount()) {
+            sf::Int16 sample = m_buffer.getSamples()[m_currentSampleIndex];
+            return std::abs(static_cast<float>(sample)) / 32767.0f; // Normalize to range [0, 1]
+        } else {
+            return 0.0f;
+        }
+    }
+
+private:
+    sf::SoundBuffer m_buffer; // Sound buffer to hold the audio data
+    std::size_t m_currentSampleIndex = 0; // Index of the current sample being analyzed
+    unsigned int m_sampleRate; // Sample rate of the audio buffer
+    unsigned int m_channelCount; // Channel count of the audio buffer
+};
+
 int main()
 {
     sf::ContextSettings settings;
@@ -199,11 +253,21 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
 
-    sf::Music music;
-    if (!music.openFromFile("sample.ogg"))
+    // Create an instance of the amplitude analyzer
+    AmplitudeAnalyzer analyzer;
+
+    // Load the OGG sound file into the sound buffer
+    sf::SoundBuffer buffer;
+    if (!buffer.loadFromFile("sample.ogg")) {
+        std::cerr << "Failed to load sound file." << std::endl;
         return EXIT_FAILURE;
-    music.play();
-    music.setLoop(true);
+    }
+
+    // Set the sound buffer for the analyzer
+    analyzer.setSoundBuffer(buffer);
+
+    // Start playing the audio
+    analyzer.play();
 
     bool running = true;
     while (running)
@@ -218,7 +282,7 @@ int main()
             else if (event.type == sf::Event::Resized)
             {
                 glViewport(0, 0, event.size.width, event.size.height);
-                projection = glm::perspective(glm::radians(45.0f), static_cast<float>(event.size.width) / event.size.height, 0.1f, 100.0f);
+                projection = glm::perspective(glm::radians(90.0f), static_cast<float>(event.size.width) / event.size.height, 0.1f, 100.0f);
                 glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
             }
             else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))
@@ -226,6 +290,15 @@ int main()
                 running = false;
             }
         }
+
+        // Calculate and display the amplitude of the current sample
+        float amplitude = analyzer.getAmplitude();
+        std::cout << "Amplitude: " << amplitude << std::endl;
+
+        // Calculate scale based on amplitude and apply to the model matrix
+        float scale = 1.0f + amplitude; // Adjust this scale factor as needed
+        glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
