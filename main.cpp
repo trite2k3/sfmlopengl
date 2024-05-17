@@ -189,7 +189,7 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(1024, 768), "OpenGL + SFML Test", sf::Style::Default, settings);
     window.setVerticalSyncEnabled(false);
-    window.setFramerateLimit(60);
+    window.setFramerateLimit(144);
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
