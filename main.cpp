@@ -272,6 +272,7 @@ int main()
     // Initialize and play audio analyzer
     AmplitudeAnalyzer analyzer;
     analyzer.setSoundBuffer(buffer);
+    analyzer.setLoop(true); // Set the sound to loop
     analyzer.play();
 
     // Enable depth test
