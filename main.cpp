@@ -265,6 +265,7 @@ int main()
 
     // Set the sound buffer for the analyzer
     analyzer.setSoundBuffer(buffer);
+    analyzer.setLoop(true); // Set the sound to loop
 
     // Start playing the audio
     analyzer.play();
