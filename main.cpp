@@ -93,42 +93,65 @@ static GLuint CreateShader(const std::string& vertexShader, const std::string& f
     return program;
 }
 
-// Function to generate vertices and indices for a sphere
-void generateSphere(std::vector<float>& vertices, std::vector<unsigned int>& indices, float radius, unsigned int rings, unsigned int sectors)
-{
-    const float PI = 3.14159265359f;
-    const float R = 1.0f / (float)(rings - 1);
-    const float S = 1.0f / (float)(sectors - 1);
+// Function to load OBJ file with scaling
+bool loadOBJ(const std::string& path, std::vector<float>& vertices, std::vector<unsigned int>& indices, float scale = 1.0f) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open OBJ file: " << path << std::endl;
+        return false;
+    }
 
-    for (unsigned int r = 0; r < rings; ++r)
-    {
-        for (unsigned int s = 0; s < sectors; ++s)
-        {
-            float y = sin(-PI / 2.0f + PI * r * R);
-            float x = cos(2.0f * PI * s * S) * sin(PI * r * R);
-            float z = sin(2.0f * PI * s * S) * sin(PI * r * R);
+    std::vector<glm::vec3> temp_vertices;
+    std::vector<glm::vec3> temp_normals;
+    std::vector<glm::vec2> temp_uvs;
+    std::vector<unsigned int> vertexIndices, uvIndices, normalIndices;
 
-            vertices.push_back(x * radius);
-            vertices.push_back(y * radius);
-            vertices.push_back(z * radius);
-            vertices.push_back(x);
-            vertices.push_back(y);
-            vertices.push_back(z);
+    std::string line;
+    while (getline(file, line)) {
+        std::stringstream ss(line);
+        std::string header;
+        ss >> header;
+
+        if (header == "v") {
+            glm::vec3 vertex;
+            ss >> vertex.x >> vertex.y >> vertex.z;
+            vertex *= scale; // Apply scaling
+            temp_vertices.push_back(vertex);
+        } else if (header == "vt") {
+            glm::vec2 uv;
+            ss >> uv.x >> uv.y;
+            temp_uvs.push_back(uv);
+        } else if (header == "vn") {
+            glm::vec3 normal;
+            ss >> normal.x >> normal.y >> normal.z;
+            temp_normals.push_back(normal);
+        } else if (header == "f") {
+            std::string vertex1, vertex2, vertex3;
+            unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+            char slash;
+            for (int i = 0; i < 3; i++) {
+                ss >> vertexIndex[i] >> slash >> uvIndex[i] >> slash >> normalIndex[i];
+                vertexIndices.push_back(vertexIndex[i]);
+                uvIndices.push_back(uvIndex[i]);
+                normalIndices.push_back(normalIndex[i]);
+            }
         }
     }
 
-    for (unsigned int r = 0; r < rings - 1; ++r)
-    {
-        for (unsigned int s = 0; s < sectors - 1; ++s)
-        {
-            indices.push_back(r * sectors + s);
-            indices.push_back(r * sectors + (s + 1));
-            indices.push_back((r + 1) * sectors + (s + 1));
-            indices.push_back(r * sectors + s);
-            indices.push_back((r + 1) * sectors + (s + 1));
-            indices.push_back((r + 1) * sectors + s);
-        }
+    // Reorganize data
+    for (unsigned int i = 0; i < vertexIndices.size(); i++) {
+        glm::vec3 vertex = temp_vertices[vertexIndices[i] - 1];
+        glm::vec3 normal = temp_normals[normalIndices[i] - 1];
+        vertices.push_back(vertex.x);
+        vertices.push_back(vertex.y);
+        vertices.push_back(vertex.z);
+        vertices.push_back(normal.x);
+        vertices.push_back(normal.y);
+        vertices.push_back(normal.z);
+        indices.push_back(i);
     }
+
+    return true;
 }
 
 // Class for analyzing amplitude from an SFML sound buffer
@@ -222,10 +245,12 @@ int main()
     GLuint shader = CreateShader(source.VertexSource, source.FragmentSource);
     glUseProgram(shader);
 
-    // Generate sphere data
+    // Generate .obj data
     std::vector<float> vertices;
     std::vector<unsigned int> indices;
-    generateSphere(vertices, indices, 1.0f, 32, 32);
+    if (!loadOBJ("model.obj", vertices, indices, 0.1f)) { // Adjust the scale factor as needed
+        return -1;
+    }
 
     // Setup vertex array object (VAO), vertex buffer object (VBO), and element buffer object (EBO)
     GLuint vao, vbo, ebo;
@@ -330,6 +355,7 @@ int main()
     glDeleteBuffers(1, &vbo);
     glDeleteBuffers(1, &ebo);
     glDeleteProgram(shader);
+    window.close(); // Ensure the window is closed properly
 
     return 0;
 }
