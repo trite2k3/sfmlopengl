@@ -1,7 +1,7 @@
 # sfmlopengl
 
 
-the gogole and copy paste is real!
+the google and copy paste is real!
 
 
 [![partyball](https://img.youtube.com/vi/_QsRgShaQtY/0.jpg)](https://www.youtube.com/watch?v=_QsRgShaQtY)
