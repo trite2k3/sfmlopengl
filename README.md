@@ -8,6 +8,8 @@ the google and copy paste is real!
 
 Requires: SFML, GLM
 
+sudo apt install build-essential cmake libsfml-dev libglm-dev libglew-dev
+
 you also need to provide any .ogg soundfile for the music playback
 
 https://tuberipper.cc/
