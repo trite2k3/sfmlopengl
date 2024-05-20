@@ -211,6 +211,9 @@ private:
 
 int main()
 {
+	//fullscreen toggle
+	bool fullscreentoggle = false;
+
     sf::ContextSettings settings;
     settings.depthBits = 24;
     settings.stencilBits = 8;
@@ -219,9 +222,18 @@ int main()
     settings.minorVersion = 6;
     settings.attributeFlags = sf::ContextSettings::Core;
 
+	// Declare outside if because otherwise its outside scope
+	sf::RenderWindow window;
+
     // Create the SFML window with fullscreen style
-    sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
-    sf::RenderWindow window(desktopMode, "OpenGL + SFML Test", sf::Style::Fullscreen, settings);
+    if (fullscreentoggle)
+    {
+		sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
+        window.create(desktopMode, "OpenGL + SFML Test", sf::Style::Fullscreen, settings);
+    } else {
+		window.create(sf::VideoMode(800, 600), "OpenGL + SFML Test", sf::Style::Titlebar, settings);
+	}
+
     window.setVerticalSyncEnabled(false);
     window.setFramerateLimit(144);
 
@@ -272,8 +284,17 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+	// declare glm4 mat projection otherwise outside scope
+	glm::mat4 projection;
+
     // Set up projection matrix
-    glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<float>(desktopMode.width) / desktopMode.height, 0.1f, 100.0f);
+    if (fullscreentoggle)
+    {
+		sf::VideoMode desktopMode = sf::VideoMode::getDesktopMode();
+        projection = glm::perspective(glm::radians(45.0f), static_cast<float>(desktopMode.width) / desktopMode.height, 0.1f, 100.0f);
+    } else {
+		projection = glm::perspective(glm::radians(45.0f), static_cast<float>(800) / 600, 0.1f, 100.0f);
+	}
     glm::vec3 lightPos = glm::vec3(2.0f, 2.0f, 2.0f);
     glm::vec3 viewPos = glm::vec3(0.0f, 0.0f, 3.0f);
 
