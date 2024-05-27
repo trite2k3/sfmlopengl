@@ -4,7 +4,7 @@
 the google and copy paste is real!
 
 
-[![partyball](https://img.youtube.com/vi/_QsRgShaQtY/0.jpg)](https://www.youtube.com/watch?v=_QsRgShaQtY)
+[![cat](https://img.youtube.com/vi/rlc_gxiyz4U/0.jpg)](https://www.youtube.com/watch?v=rlc_gxiyz4U)
 
 Requires: SFML, GLM
 
