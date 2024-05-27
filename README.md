@@ -4,7 +4,7 @@
 the google and copy paste is real!
 
 
-[![cat](https://img.youtube.com/vi/rlc_gxiyz4U/0.jpg)](https://www.youtube.com/watch?v=rlc_gxiyz4U)
+[![cat](https://img.youtube.com/vi/8vnNBKrEGpA/0.jpg)](https://www.youtube.com/watch?v=8vnNBKrEGpA)
 
 Requires: SFML, GLM
 
