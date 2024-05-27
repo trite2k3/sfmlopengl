@@ -328,6 +328,9 @@ int main()
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
+    // Declare SFML clock
+    sf::Clock clock;
+
     bool running = true;
     while (running)
     {
@@ -338,12 +341,6 @@ int main()
             {
                 running = false;
             }
-            else if (event.type == sf::Event::Resized)
-            {
-                glViewport(0, 0, event.size.width, event.size.height);
-                projection = glm::perspective(glm::radians(90.0f), static_cast<float>(event.size.width) / event.size.height, 0.1f, 100.0f);
-                glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-            }
             else if ((event.type == sf::Event::KeyPressed) && (event.key.code == sf::Keyboard::Escape))
             {
                 running = false;
@@ -353,7 +350,14 @@ int main()
         // Get the current amplitude and scale the model matrix accordingly
         float amplitude = analyzer.getAmplitude();
         float scale = 1.0f + amplitude;
-        glm::mat4 model = glm::scale(glm::mat4(1.0f), glm::vec3(scale));
+
+        // Calculate rotation angle (in radians)
+        float angle = clock.getElapsedTime().asSeconds(); // Rotation over time
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -7.0f)); // Move object back
+        model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, -0.5f, -1.0f)); // Initial rotation to view from the front
+        model = glm::rotate(model, angle, glm::vec3(0.5f, 0.5f, 0.1f)); // Rotate around y-axis
+        model = glm::scale(model, glm::vec3(scale)); // Scale based on amplitude
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
         // Clear the screen
