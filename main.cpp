@@ -354,7 +354,7 @@ int main()
         // Calculate rotation angle (in radians)
         float angle = clock.getElapsedTime().asSeconds(); // Rotation over time
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -7.0f)); // Move object back
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -6.0f)); // Move object back
         model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, -0.5f, -1.0f)); // Initial rotation to view from the front
         model = glm::rotate(model, angle, glm::vec3(0.5f, 0.5f, 0.1f)); // Rotate around y-axis
         model = glm::scale(model, glm::vec3(scale)); // Scale based on amplitude
@@ -369,7 +369,8 @@ int main()
 
         // Draw the sphere
         glBindVertexArray(vao);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_POINTS, indices.size(), GL_UNSIGNED_INT, 0);
+
 
         // Display the rendered frame
         window.display();
