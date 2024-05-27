@@ -328,8 +328,16 @@ int main()
     glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-    // Declare SFML clock
+    // Declare SFML clock and variable clock
     sf::Clock clock;
+
+    // variable rotation value range
+    float minValue = 0.1f;
+    float maxValue = 10.0f;
+    float currentValue = minValue;
+
+    // Define the time interval for cycling
+    float cycleTime = 5.0f; // 5 seconds for one complete cycle
 
     bool running = true;
     while (running)
@@ -353,10 +361,29 @@ int main()
 
         // Calculate rotation angle (in radians)
         float angle = clock.getElapsedTime().asSeconds(); // Rotation over time
+
+        // Calculate the elapsed time
+        float elapsedTime = clock.getElapsedTime().asSeconds();
+
+        // Calculate the value of the sine wave using elapsedTime and cycleTime
+        float cyclePercentage = std::sin(2 * M_PI * elapsedTime / cycleTime);
+        // Calculate the value of the sine wave using elapsedTime and cycleTime
+        float cyclePercentage2 = std::sin(5 * M_PI * elapsedTime / cycleTime);
+        // Calculate the value of the sine wave using elapsedTime and cycleTime
+        float cyclePercentage3 = std::sin(10 * M_PI * elapsedTime / cycleTime);
+
+        // Map the sine wave value to the range [minValue, maxValue]
+        float currentValue = minValue + (cyclePercentage + 1) * 0.5f * (maxValue - minValue);
+        // Map the sine wave value to the range [minValue, maxValue]
+        float currentValue2 = minValue + (cyclePercentage + 2) * 1.0f * (maxValue - minValue);
+        // Map the sine wave value to the range [minValue, maxValue]
+        float currentValue3 = minValue + (cyclePercentage + 1) * 1.0f * (maxValue - minValue);
+
+        // le transformation and rotation matrices
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -6.0f)); // Move object back
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, -8.0f)); // Move object back
         model = glm::rotate(model, glm::radians(90.0f), glm::vec3(-1.0f, -0.5f, -1.0f)); // Initial rotation to view from the front
-        model = glm::rotate(model, angle, glm::vec3(0.5f, 0.5f, 0.1f)); // Rotate around y-axis
+        model = glm::rotate(model, angle, glm::vec3(currentValue, -currentValue2, currentValue3)); // Rotate
         model = glm::scale(model, glm::vec3(scale)); // Scale based on amplitude
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
